@@ -1,0 +1,42 @@
+body {
+    margin: 0;
+    font-family: "Poppins", sans-serif;
+    background: linear-gradient(135deg, #2b1055, #7597de);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    color: white;
+}
+
+.container {
+    text-align: center;
+}
+
+.tap-box {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px 40px;
+    border-radius: 14px;
+    font-size: 1.5rem;
+    backdrop-filter: blur(10px);
+    cursor: pointer;
+    transition: 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.tap-box:hover {
+    transform: scale(1.05);
+}
+
+.reveal-message {
+    margin-top: 25px;
+    font-size: 1.6rem;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: 0.4s ease;
+}
+
+.reveal-message.show {
+    opacity: 1;
+    transform: translateY(0);
+}
