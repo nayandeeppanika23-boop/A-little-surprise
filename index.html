@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Tap or Type — A Little Surprise</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&family=Great+Vibes&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-1:#0f172a;
+    --bg-2:#071133;
+    --card:#0b1220;
+    --accent:#ff6b8a;
+    --muted:#98a0b3;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+    background: radial-gradient(1200px 800px at 10% 10%, rgba(255,107,138,0.06), transparent),
+                radial-gradient(900px 500px at 90% 90%, rgba(88,116,255,0.04), transparent),
+                linear-gradient(180deg,var(--bg-1),var(--bg-2));
+    color:#e6eef8;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+
+  .card{
+    width:min(900px,96vw);
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:18px;
+    padding:28px;
+    box-shadow: 0 10px 30px rgba(3,7,18,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+    display:grid;
+    grid-template-columns: 1fr 360px;
+    gap:20px;
+    align-items:center;
+  }
+
+  /* Left column: interactive canvas */
+  .stage{
+    min-height:320px;
+    border-radius:12px;
+    position:relative;
+    overflow:hidden;
+    padding:22px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
+    border: 1px solid rgba(255,255,255,0.03);
+  }
+
+  .title{
+    font-family: "Great Vibes", cursive;
+    font-size:32px;
+    letter-spacing:0.6px;
+    color:var(--accent);
+    text-shadow: 0 6px 30px rgba(255,107,138,0.12);
+    margin:0 0 8px 0;
+  }
+  .subtitle{ color:var(--muted); margin:0 0 14px 0; font-size:14px }
+
+  .touchArea{
+    flex:1;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    margin-bottom:16px;
+    user-select:none;
+    cursor: pointer;
+    background:
+      radial-gradient(400px 180px at 20% 20%, rgba(255,107,138,0.035), transparent),
+      radial-gradient(300px 160px at 80% 80%, rgba(88,116,255,0.03), transparent);
+  }
+
+  .hint{
+    position:absolute;
+    top:12px;
+    right:12px;
+    color:var(--muted);
+    font-size:13px;
+    background:rgba(0,0,0,0.25);
+    padding:6px 10px;
+    border-radius:999px;
+    backdrop-filter: blur(6px);
+  }
+
+  /* message bubbles */
+  .bubble {
+    position: absolute;
+    min-width: 80px;
+    max-width: 260px;
+    padding:12px 14px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.04));
+    border: 1px solid rgba(255,255,255,0.04);
+    box-shadow: 0 6px 20px rgba(2,6,18,0.4);
+    transform-origin: center;
+    animation: popIn 420ms cubic-bezier(.2,.9,.2,1);
+    backdrop-filter: blur(6px);
+    font-size:15px;
+    color:#fff;
+  }
+
+  @keyframes popIn {
+    from { transform: translateY(8px) scale(0.92); opacity: 0; }
+    to   { transform: translateY(0) scale(1);    opacity: 1; }
+  }
+
+  /* Right column: controls & history */
+  .controls{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+
+  .controlBox{
+    background:rgba(255,255,255,0.02);
+    padding:12px;
+    border-radius:10px;
+    border:1px solid rgba(255,255,255,0.02);
+  }
+
+  label{ display:block; font-size:13px; color:var(--muted); margin-bottom:8px }
+  input[type="text"]{
+    width:100%;
+    padding:10px 12px;
+    border-radius:8px;
+    border:1px solid rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.18);
+    color: #eaf2ff;
+    outline:none;
+    font-size:14px;
+  }
+  .row{ display:flex; gap:8px }
+  button{
+    padding:10px 12px;
+    border-radius:10px;
+    border:none;
+    background: linear-gradient(90deg,var(--accent), #7c56ff);
+    color:white;
+    font-weight:600;
+    cursor:pointer;
+  }
+  button.ghost{
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.04);
+    color:var(--muted);
+    font-weight:600;
+  }
+
+  .history{
+    max-height:220px;
+    overflow:auto;
+    padding:8px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .histItem{
+    padding:8px;
+    border-radius:8px;
+    background:rgba(255,255,255,0.02);
+    font-size:14px;
+    color:#dbe9ff;
+  }
+
+  /* responsive */
+  @media (max-width:880px){
+    .card{ grid-template-columns:1fr; padding:18px }
+    .touchArea{ min-height:260px }
+  }
+</style>
+</head>
+<body>
+  <main class="card" role="main" aria-labelledby="pageTitle">
+    <section class="stage" aria-label="Interactive stage">
+      <div>
+        <h1 id="pageTitle" class="title">A Little Surprise</h1>
+        <p class="subtitle">Tap anywhere in the big area or type a word in the box — something new will appear.</p>
+      </div>
+
+      <div id="touchArea" class="touchArea" tabindex="0" role="button" aria-pressed="false" aria-label="Tap to reveal">
+        <span class="hint">Tap or Type</span>
+        <!-- dynamic bubbles inserted here -->
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:center;justify-content:space-between">
+        <small style="color:var(--muted)">Revealed items persist on this device.</small>
+        <button id="resetBtn" class="ghost" title="Clear revealed items">Reset</button>
+      </div>
+    </section>
+
+    <aside class="controls" aria-label="Controls">
+      <div class="controlBox">
+        <label for="textInput">Type a phrase (press Enter)</label>
+        <input id="textInput" type="text" inputmode="text" autocomplete="off" maxlength="60" placeholder="Try 'butterfly', 'moon', or a secret..." />
+      </div>
+
+      <div class="controlBox">
+        <label>Quick actions</label>
+        <div class="row">
+          <button id="spawnBtn">Reveal now</button>
+          <button id="randomSecretBtn" class="ghost">Random secret</button>
+        </div>
+      </div>
+
+      <div class="controlBox">
+        <label>History</label>
+        <div class="history" id="historyList" aria-live="polite"></div>
+      </div>
+    </aside>
+  </main>
+
+<script>
+/*
+  Interactive reveal script
+  - Tapping the touch area spawns a random bubble at the tap coordinates.
+  - Typing a special word (secretWords) reveals a specific hidden message.
+  - Revealed items are stored in localStorage (key: 'revealedItems').
+  - Reset button clears storage and UI.
+*/
+
+const touchArea = document.getElementById('touchArea');
+const textInput = document.getElementById('textInput');
+const spawnBtn = document.getElementById('spawnBtn');
+const resetBtn = document.getElementById('resetBtn');
+const historyList = document.getElementById('historyList');
+const randomSecretBtn = document.getElementById('randomSecretBtn');
+
+const randomMessages = [
+  {type:'emoji', content:'💋'},
+  {type:'emoji', content:'🦋'},
+  {type:'emoji', content:'🌙'},
+  {type:'emoji', content:'✨'},
+  {type:'message', content:'I love you to the moon and back.'},
+  {type:'message', content:'You make ordinary days feel magical.'},
+  {type:'message', content:'Meri butterfly, only you.'},
+  {type:'message', content:'A little secret: you are my favourite.'},
+];
+
+const secretWords = {
+  'rose': {type:'message', content:'A rose for you — soft & brave.'},
+  'butterfly': {type:'emoji', content:'🦋'},
+  'bubbu': {type:'message', content:'Happy Birthday, my Bubbu.'},
+  'kiss': {type:'emoji', content:'💋'},
+  'moon': {type:'emoji', content:'🌙'},
+  'secret123': {type:'message', content:'This is the hidden message you unlocked.'}
+};
+
+function randChoice(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+function loadRevealed(){
+  try {
+    const raw = localStorage.getItem('revealedItems');
+    return raw ? JSON.parse(raw) : [];
+  } catch(e){ return []; }
+}
+
+function saveRevealed(list){
+  localStorage.setItem('revealedItems', JSON.stringify(list));
+}
+
+function addHistory(item){
+  const el = document.createElement('div');
+  el.className = 'histItem';
+  el.textContent = (item.type === 'emoji') ? `Emoji: ${item.content}` : `Note: ${item.content}`;
+  historyList.prepend(el);
+}
+
+function spawnBubbleAt(xPct, yPct, item){
+  // create bubble element that appears at percentage coordinates
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = item.type === 'emoji' ? item.content : item.content;
+  // position by percentage within the touchArea
+  bubble.style.left = `${xPct}%`;
+  bubble.style.top = `${yPct}%`;
+  // small random offset to avoid overlap
+  bubble.style.transform = `translate(-50%,-50%)`;
+  touchArea.appendChild(bubble);
+
+  // remove after animation + timeout
+  setTimeout(()=> {
+    bubble.style.transition = 'transform 300ms ease, opacity 300ms ease';
+    bubble.style.opacity = '0';
+    bubble.style.transform += ' scale(0.92) translateY(-8px)';
+    setTimeout(()=> bubble.remove(), 350);
+  }, 3000);
+}
+
+function revealRandomAt(clientX, clientY){
+  const rect = touchArea.getBoundingClientRect();
+  // compute percentage pos inside area
+  const xPct = Math.max(5, Math.min(95, ((clientX - rect.left) / rect.width) * 100));
+  const yPct = Math.max(10, Math.min(90, ((clientY - rect.top) / rect.height) * 100));
+  const item = randChoice(randomMessages);
+
+  spawnBubbleAt(xPct, yPct, item);
+
+  // persist
+  const revealed = loadRevealed();
+  revealed.unshift({ts:Date.now(), item});
+  saveRevealed(revealed);
+  addHistory(item);
+}
+
+// handle taps / clicks
+touchArea.addEventListener('click', (ev) => {
+  // if click is from keyboard (Enter) clientX/Y may be 0 — center then
+  const cx = ev.clientX || (touchArea.getBoundingClientRect().left + touchArea.offsetWidth/2);
+  const cy = ev.clientY || (touchArea.getBoundingClientRect().top + touchArea.offsetHeight/2);
+  revealRandomAt(cx, cy);
+});
+
+// keyboard accessibility: Enter/Space on the touchArea triggers reveal
+touchArea.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Enter' || ev.key === ' ') {
+    ev.preventDefault();
+    const rect = touchArea.getBoundingClientRect();
+    revealRandomAt(rect.left + rect.width/2, rect.top + rect.height/2);
+  }
+});
+
+// spawn button (controls)
+spawnBtn.addEventListener('click', () => {
+  const rect = touchArea.getBoundingClientRect();
+  // random coords inside
+  const cx = rect.left + (Math.random() * rect.width * 0.8) + rect.width*0.1;
+  const cy = rect.top + (Math.random() * rect.height * 0.6) + rect.height*0.2;
+  revealRandomAt(cx, cy);
+});
+
+// process typed phrases
+textInput.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Enter') {
+    const phrase = textInput.value.trim().toLowerCase();
+    if (!phrase) return;
+    // check secret words
+    if (secretWords[phrase]) {
+      const rect = touchArea.getBoundingClientRect();
+      // drop at random position
+      const cx = rect.left + (Math.random() * rect.width * 0.7) + rect.width*0.15;
+      const cy = rect.top + (Math.random() * rect.height * 0.6) + rect.height*0.2;
+      spawnBubbleAt(((cx-rect.left)/rect.width)*100, ((cy-rect.top)/rect.height)*100, secretWords[phrase]);
+      const revealed = loadRevealed();
+      revealed.unshift({ts:Date.now(), item:secretWords[phrase], via:phrase});
+      saveRevealed(revealed);
+      addHistory(secretWords[phrase]);
+      textInput.value = '';
+      return;
+    }
+    // otherwise show a friendly acknowledgement bubble
+    const ack = {type:'message', content:`You typed: "${phrase}" — nice!"`};
+    const rect = touchArea.getBoundingClientRect();
+    const cx = rect.left + rect.width/2;
+    const cy = rect.top + rect.height/2;
+    spawnBubbleAt(50, 50, ack);
+    const revealed = loadRevealed();
+    revealed.unshift({ts:Date.now(), item:ack});
+    saveRevealed(revealed);
+    addHistory(ack);
+    textInput.value = '';
+  }
+});
+
+// reset
+resetBtn.addEventListener('click', () => {
+  if (!confirm('Clear all revealed items from this device?')) return;
+  localStorage.removeItem('revealedItems');
+  historyList.innerHTML = '';
+  // gently clear touchArea bubbles
+  document.querySelectorAll('.bubble').forEach(b => b.remove());
+});
+
+// random secret button
+randomSecretBtn.addEventListener('click', () => {
+  const keys = Object.keys(secretWords);
+  const k = keys[Math.floor(Math.random()*keys.length)];
+  // feed the input and trigger Enter programmatically
+  textInput.value = k;
+  const ev = new KeyboardEvent('keydown', {key:'Enter'});
+  textInput.dispatchEvent(ev);
+});
+
+// load history on start
+(function init(){
+  const revealed = loadRevealed();
+  if (revealed && revealed.length){
+    revealed.slice(0,40).forEach(r => addHistory(r.item));
+  } else {
+    // initial friendly note
+    const initNote = {type:'message', content:'Tap the area or try typing "butterfly", "kiss", or "bubbu".'};
+    addHistory(initNote);
+  }
+})();
+</script>
+</body>
+</html>
